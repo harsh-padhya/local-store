@@ -17,7 +17,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { FaStar, FaMapMarkerAlt, FaPhone, FaGlobe, FaClock } from 'react-icons/fa';
+import { FaStar, FaMapMarkerAlt, FaPhone, FaClock } from 'react-icons/fa';
 import { getStoreById } from '@/lib/data/stores';
 import { formatRating } from '@/lib/utils';
 import ProductCard from '@/components/ProductCard';
@@ -29,7 +29,8 @@ interface StoreDetailPageProps {
 }
 
 export default function StoreDetailPage({ params }: StoreDetailPageProps) {
-  const store = getStoreById(params.id);
+  const storeId = React.use(Promise.resolve(params)).id;
+  const store = getStoreById(storeId);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
   if (!store) {
@@ -96,19 +97,6 @@ export default function StoreDetailPage({ params }: StoreDetailPageProps) {
         </div>
       </div>
 
-      {/* Store Map */}
-      <div className="bg-white rounded-xl shadow-md overflow-hidden mb-8">
-        <div className="p-6">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4">Location</h2>
-          <div className="relative h-64 w-full bg-gray-200 rounded-lg">
-            {/* Map would go here in a real implementation */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <p className="text-gray-500">Map showing location at {store.latitude}, {store.longitude}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Products Section */}
       <div className="bg-white rounded-xl shadow-md overflow-hidden">
         <div className="p-6">
@@ -148,6 +136,7 @@ export default function StoreDetailPage({ params }: StoreDetailPageProps) {
                 key={product.id} 
                 product={product} 
                 storeAddress={store.address}
+                storeId={store.id}
               />
             ))}
           </div>
