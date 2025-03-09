@@ -16,9 +16,9 @@
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { FaMapMarkerAlt, FaStore } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaStore, FaChevronDown, FaChevronUp } from 'react-icons/fa';
 import { stores, getAllCategories } from '@/lib/data/stores';
-import { getUserLocation, sortStoresByDistance } from '@/lib/utils';
+import { getUserLocation, sortStoresByDistance, calculateDistance } from '@/lib/utils';
 import StoreCard from '@/components/StoreCard';
 import CategoryFilter from '@/components/CategoryFilter';
 
@@ -28,6 +28,8 @@ export default function Home() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lon: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [isNearbyExpanded, setIsNearbyExpanded] = useState(false);
+  const [maxDistance, setMaxDistance] = useState(30); // Default 30km
   
   const categories = getAllCategories();
 
@@ -69,13 +71,37 @@ export default function Home() {
         userLocation.lat,
         userLocation.lon
       );
+      
+      // Filter by distance if expanded
+      if (isNearbyExpanded) {
+        filteredStores = filteredStores.filter(store => {
+          const distance = calculateDistance(
+            userLocation.lat,
+            userLocation.lon,
+            store.latitude,
+            store.longitude
+          );
+          return distance <= maxDistance;
+        });
+      } else {
+        // Only show top 4 stores when collapsed
+        filteredStores = filteredStores.slice(0, 4);
+      }
     }
     
     setNearbyStores(filteredStores);
-  }, [selectedCategory, userLocation]);
+  }, [selectedCategory, userLocation, isNearbyExpanded, maxDistance]);
 
   const handleCategoryChange = (category: string | null) => {
     setSelectedCategory(category);
+  };
+  
+  const toggleNearbyExpanded = () => {
+    setIsNearbyExpanded(!isNearbyExpanded);
+  };
+  
+  const handleDistanceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setMaxDistance(Number(e.target.value));
   };
 
   return (
@@ -106,13 +132,13 @@ export default function Home() {
                   <FaStore className="mr-2" />
                   Browse All Stores
                 </Link>
-                <Link
-                  href="#nearby"
+                <button
+                  onClick={toggleNearbyExpanded}
                   className="bg-indigo-600 text-white hover:bg-indigo-700 px-6 py-3 rounded-full font-medium flex items-center justify-center"
                 >
                   <FaMapMarkerAlt className="mr-2" />
                   Find Nearby
-                </Link>
+                </button>
               </div>
             </div>
           </div>
@@ -121,65 +147,112 @@ export default function Home() {
 
       {/* Nearby Stores Section */}
       <section id="nearby" className="mb-12">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-1">Nearby Stores</h2>
-            <p className="text-gray-600">
-              {locationError 
-                ? locationError 
-                : userLocation 
-                  ? 'Stores closest to your current location' 
-                  : 'Finding stores near you...'}
-            </p>
+        <div className="bg-white rounded-xl shadow-md overflow-hidden">
+          <div className="p-4 bg-gray-50 border-b flex flex-col md:flex-row justify-between items-start md:items-center">
+            <div>
+              <button 
+                onClick={toggleNearbyExpanded}
+                className="flex items-center text-xl font-bold text-gray-800 hover:text-indigo-600"
+              >
+                Nearby Stores
+                {isNearbyExpanded ? (
+                  <FaChevronUp className="ml-2 text-sm" />
+                ) : (
+                  <FaChevronDown className="ml-2 text-sm" />
+                )}
+              </button>
+              <p className="text-gray-600">
+                {locationError 
+                  ? locationError 
+                  : userLocation 
+                    ? 'Stores closest to your current location' 
+                    : 'Finding stores near you...'}
+              </p>
+            </div>
+            
+            {isNearbyExpanded && userLocation && (
+              <div className="mt-4 md:mt-0 flex items-center">
+                <label htmlFor="distance" className="text-gray-700 mr-2">Distance:</label>
+                <select
+                  id="distance"
+                  value={maxDistance}
+                  onChange={handleDistanceChange}
+                  className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value={5}>Within 5 km</option>
+                  <option value={10}>Within 10 km</option>
+                  <option value={20}>Within 20 km</option>
+                  <option value={30}>Within 30 km</option>
+                  <option value={50}>Within 50 km</option>
+                </select>
+              </div>
+            )}
+          </div>
+          
+          <div className={`p-6 ${isNearbyExpanded ? 'block' : 'block'}`}>
+            {/* Category Filter */}
+            {isNearbyExpanded && (
+              <CategoryFilter 
+                categories={categories} 
+                selectedCategory={selectedCategory} 
+                onChange={handleCategoryChange} 
+              />
+            )}
+            
+            {/* Stores Grid */}
+            {isLoading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {nearbyStores.map(store => (
+                  <StoreCard 
+                    key={store.id} 
+                    store={store} 
+                    distance={userLocation ? 
+                      Number(
+                        (
+                          calculateDistance(
+                            userLocation.lat,
+                            userLocation.lon,
+                            store.latitude,
+                            store.longitude
+                          )
+                        ).toFixed(1)
+                      ) : 
+                      undefined
+                    } 
+                  />
+                ))}
+              </div>
+            )}
+            
+            {nearbyStores.length === 0 && !isLoading && (
+              <div className="text-center py-12">
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">No stores found</h3>
+                <p className="text-gray-600">
+                  {selectedCategory 
+                    ? `No ${selectedCategory} stores found in your area. Try another category or increase the distance.` 
+                    : 'No stores found in your area. Try increasing the distance.'}
+                </p>
+              </div>
+            )}
+            
+            {!isNearbyExpanded && nearbyStores.length > 0 && (
+              <div className="text-center mt-6">
+                <button
+                  onClick={toggleNearbyExpanded}
+                  className="inline-flex items-center text-indigo-600 hover:text-indigo-800"
+                >
+                  View all nearby stores
+                  <FaChevronDown className="ml-1" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Category Filter */}
-        <CategoryFilter 
-          categories={categories} 
-          selectedCategory={selectedCategory} 
-          onChange={handleCategoryChange} 
-        />
-
-        {/* Stores Grid */}
-        {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {nearbyStores.map(store => (
-              <StoreCard 
-                key={store.id} 
-                store={store} 
-                distance={userLocation ? 
-                  Number(
-                    (
-                      Math.sqrt(
-                        Math.pow(69.1 * (userLocation.lat - store.latitude), 2) +
-                        Math.pow(69.1 * (store.longitude - userLocation.lon) * Math.cos(store.latitude / 57.3), 2)
-                      ) * 1.609344
-                    ).toFixed(1)
-                  ) : 
-                  undefined
-                } 
-              />
-            ))}
-          </div>
-        )}
-
-        {nearbyStores.length === 0 && !isLoading && (
-          <div className="text-center py-12">
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">No stores found</h3>
-            <p className="text-gray-600">
-              {selectedCategory 
-                ? `No ${selectedCategory} stores found in your area. Try another category.` 
-                : 'No stores found in your area.'}
-            </p>
-          </div>
-        )}
       </section>
-
     </div>
   );
 } 

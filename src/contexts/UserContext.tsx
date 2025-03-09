@@ -78,7 +78,7 @@ const mockGoogleAuth = (): Promise<{
       resolve({
         name: 'Google User',
         email: 'google.user@example.com',
-        photoURL: 'https://lh3.googleusercontent.com/a/default-user',
+        photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&auto=format&fit=crop',
       });
     }, 1000);
   });

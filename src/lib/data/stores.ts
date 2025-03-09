@@ -41,7 +41,7 @@ export const stores: Store[] = [
     address: "45 Gandhi Road, Mumbai, Maharashtra, India",
     category: "Grocery",
     rating: 4.5,
-    image: "https://images.unsplash.com/photo-1588246832100-2d849fb3d8c6?q=80&w=800&auto=format&fit=crop",
+    image: "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=800&auto=format&fit=crop",
     latitude: 19.0760,
     longitude: 72.8777,
     products: [
@@ -143,13 +143,13 @@ export const stores: Store[] = [
   {
     id: "3",
     name: "Desi Fashion House",
-    description: "Traditional and contemporary Indian clothing, accessories, and jewelry.",
-    address: "78 Commercial Street, Bangalore, Karnataka, India",
+    description: "Traditional and contemporary Indian fashion for all occasions.",
+    address: "78 Fashion Street, Jaipur, Rajasthan, India",
     category: "Clothing",
-    rating: 4.6,
-    image: "https://images.unsplash.com/photo-1610189844804-9b1a7a9a0d1a?q=80&w=800&auto=format&fit=crop",
-    latitude: 12.9716,
-    longitude: 77.5946,
+    rating: 4.4,
+    image: "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?q=80&w=800&auto=format&fit=crop",
+    latitude: 26.9124,
+    longitude: 75.7873,
     products: [
       {
         id: "301",
@@ -249,11 +249,11 @@ export const stores: Store[] = [
   {
     id: "5",
     name: "Ayurvedic Wellness Center",
-    description: "Traditional Ayurvedic products, herbs, and natural remedies for holistic health.",
-    address: "34 Herbal Lane, Kochi, Kerala, India",
-    category: "Health & Wellness",
-    rating: 4.8,
-    image: "https://images.unsplash.com/photo-1546552768-9e3a5e56d607?q=80&w=800&auto=format&fit=crop",
+    description: "Traditional Ayurvedic products and wellness consultations for holistic health.",
+    address: "23 Health Avenue, Kochi, Kerala, India",
+    category: "Health",
+    rating: 4.7,
+    image: "https://images.unsplash.com/photo-1552611052-33e04de081de?q=80&w=800&auto=format&fit=crop",
     latitude: 9.9312,
     longitude: 76.2673,
     products: [
@@ -302,13 +302,13 @@ export const stores: Store[] = [
   {
     id: "6",
     name: "Swadeshi Handicrafts",
-    description: "Authentic Indian handicrafts, home decor, and artisanal products from across India.",
-    address: "56 Crafts Colony, Jaipur, Rajasthan, India",
-    category: "Home & Decor",
-    rating: 4.9,
-    image: "https://images.unsplash.com/photo-1582582484783-b28df7980e66?q=80&w=800&auto=format&fit=crop",
-    latitude: 26.9124,
-    longitude: 75.7873,
+    description: "Authentic Indian handicrafts and artisanal products from across the country.",
+    address: "56 Craft Lane, Bhubaneswar, Odisha, India",
+    category: "Handicrafts",
+    rating: 4.6,
+    image: "https://images.unsplash.com/photo-1606722590583-6951b5ea92ad?q=80&w=800&auto=format&fit=crop",
+    latitude: 20.2961,
+    longitude: 85.8245,
     products: [
       {
         id: "601",

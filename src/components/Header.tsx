@@ -19,16 +19,26 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FiSearch, FiMenu, FiX, FiShoppingCart, FiUser } from 'react-icons/fi';
-import { FaStore, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaStore, FaMapMarkerAlt, FaTag } from 'react-icons/fa';
 import { useCart } from '@/contexts/CartContext';
 import { useUser } from '@/contexts/UserContext';
 import { stores } from '@/lib/data/stores';
+
+// Define suggestion type
+interface SearchSuggestion {
+  type: 'store' | 'category' | 'product';
+  name: string;
+  id?: string;
+  storeId?: string;
+  description?: string;
+  relevanceScore: number;
+}
 
 export default function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [suggestions, setSuggestions] = useState<{ type: 'store' | 'category'; name: string; id?: string }[]>([]);
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
   
   const router = useRouter();
@@ -51,7 +61,7 @@ export default function Header() {
     };
   }, []);
 
-  // Generate search suggestions
+  // Generate search suggestions with relevance scoring
   useEffect(() => {
     if (searchQuery.trim().length < 2) {
       setSuggestions([]);
@@ -59,27 +69,85 @@ export default function Header() {
     }
 
     const query = searchQuery.toLowerCase().trim();
-    const results: { type: 'store' | 'category'; name: string; id?: string }[] = [];
+    const results: SearchSuggestion[] = [];
     
     // Get unique categories
     const categories = Array.from(new Set(stores.map(store => store.category)));
     
-    // Add matching stores
+    // Add matching stores with relevance scoring
     stores.forEach(store => {
-      if (store.name.toLowerCase().includes(query)) {
-        results.push({ type: 'store', name: store.name, id: store.id });
+      let relevanceScore = 0;
+      
+      // Exact name match gets highest score
+      if (store.name.toLowerCase() === query) {
+        relevanceScore = 100;
       }
+      // Name contains query
+      else if (store.name.toLowerCase().includes(query)) {
+        relevanceScore = 80;
+      }
+      // Description contains query
+      else if (store.description.toLowerCase().includes(query)) {
+        relevanceScore = 60;
+      }
+      
+      if (relevanceScore > 0) {
+        results.push({
+          type: 'store',
+          name: store.name,
+          id: store.id,
+          description: store.description,
+          relevanceScore
+        });
+      }
+      
+      // Add matching products with relevance scoring
+      store.products.forEach(product => {
+        let productRelevanceScore = 0;
+        
+        // Exact product name match
+        if (product.name.toLowerCase() === query) {
+          productRelevanceScore = 90;
+        }
+        // Product name contains query
+        else if (product.name.toLowerCase().includes(query)) {
+          productRelevanceScore = 70;
+        }
+        // Product description contains query
+        else if (product.description.toLowerCase().includes(query)) {
+          productRelevanceScore = 50;
+        }
+        
+        if (productRelevanceScore > 0) {
+          results.push({
+            type: 'product',
+            name: product.name,
+            id: product.id,
+            storeId: store.id,
+            description: `${product.description} (from ${store.name})`,
+            relevanceScore: productRelevanceScore
+          });
+        }
+      });
     });
     
     // Add matching categories
     categories.forEach(category => {
       if (category.toLowerCase().includes(query)) {
-        results.push({ type: 'category', name: category });
+        results.push({
+          type: 'category',
+          name: category,
+          relevanceScore: 75
+        });
       }
     });
     
-    // Limit to 5 suggestions
-    setSuggestions(results.slice(0, 5));
+    // Sort by relevance score and limit to 5 suggestions
+    const sortedResults = results
+      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .slice(0, 5);
+    
+    setSuggestions(sortedResults);
   }, [searchQuery]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -90,9 +158,11 @@ export default function Header() {
     }
   };
 
-  const handleSuggestionClick = (suggestion: { type: 'store' | 'category'; name: string; id?: string }) => {
+  const handleSuggestionClick = (suggestion: SearchSuggestion) => {
     if (suggestion.type === 'store' && suggestion.id) {
       router.push(`/stores/${suggestion.id}`);
+    } else if (suggestion.type === 'product' && suggestion.storeId) {
+      router.push(`/stores/${suggestion.storeId}?product=${suggestion.id}`);
     } else {
       router.push(`/search?q=${encodeURIComponent(suggestion.name)}`);
     }
@@ -102,6 +172,20 @@ export default function Header() {
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  // Get icon for suggestion type
+  const getSuggestionIcon = (type: string) => {
+    switch (type) {
+      case 'store':
+        return <FaStore className="text-indigo-600 mr-2" />;
+      case 'product':
+        return <FaTag className="text-green-600 mr-2" />;
+      case 'category':
+        return <FiSearch className="text-gray-500 mr-2" />;
+      default:
+        return <FiSearch className="text-gray-500 mr-2" />;
+    }
   };
 
   return (
@@ -144,14 +228,17 @@ export default function Header() {
                         <button
                           type="button"
                           onClick={() => handleSuggestionClick(suggestion)}
-                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center"
+                          className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-start"
                         >
-                          {suggestion.type === 'store' ? (
-                            <FaStore className="text-indigo-600 mr-2" />
-                          ) : (
-                            <FiSearch className="text-gray-500 mr-2" />
-                          )}
-                          <span>{suggestion.name}</span>
+                          <span className="mt-0.5">{getSuggestionIcon(suggestion.type)}</span>
+                          <div>
+                            <div className="font-medium">{suggestion.name}</div>
+                            {suggestion.description && (
+                              <div className="text-xs text-gray-500 truncate max-w-xs">
+                                {suggestion.description}
+                              </div>
+                            )}
+                          </div>
                         </button>
                       </li>
                     ))}
@@ -237,14 +324,17 @@ export default function Header() {
                       <button
                         type="button"
                         onClick={() => handleSuggestionClick(suggestion)}
-                        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center"
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-start"
                       >
-                        {suggestion.type === 'store' ? (
-                          <FaStore className="text-indigo-600 mr-2" />
-                        ) : (
-                          <FiSearch className="text-gray-500 mr-2" />
-                        )}
-                        <span>{suggestion.name}</span>
+                        <span className="mt-0.5">{getSuggestionIcon(suggestion.type)}</span>
+                        <div>
+                          <div className="font-medium">{suggestion.name}</div>
+                          {suggestion.description && (
+                            <div className="text-xs text-gray-500 truncate max-w-xs">
+                              {suggestion.description}
+                            </div>
+                          )}
+                        </div>
                       </button>
                     </li>
                   ))}
